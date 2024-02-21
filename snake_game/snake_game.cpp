@@ -32,8 +32,16 @@
 #include <ncurses.h>
 
 int main(void){
+   int main(void){
     printf("thuoeou");
-    game();
+    if (ready() == '1') {
+        game(1);
+    } else if (ready() == '2') {
+          game(2);
+    } else if (ready() == '3') {
+          game(3);
+    }
     printf("tuenao");
     return(0);
+}
 }
