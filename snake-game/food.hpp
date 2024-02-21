@@ -27,6 +27,8 @@
 * Additional copyrights may follow
 */
 
+
+
 #include <ncurses.h>
 
 //Two types of food
@@ -38,8 +40,8 @@ struct Food {
   int x;
   int y;
   char type;
-  struct Food* next;
   char subType;
+  struct Food* next;
 };
 
 typedef struct Food Food; 
