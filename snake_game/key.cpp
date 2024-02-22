@@ -49,6 +49,7 @@ int get_char()
   case KEY_UP:
     return UP;
     break;
+    
   case KEY_DOWN:
     return DOWN;
     break;

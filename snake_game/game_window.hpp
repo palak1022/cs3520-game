@@ -1,6 +1,5 @@
 /* game_windows.hpp ---------
  *
- * Filename: game_window.hpp
  * Description:
  * Author: Adeel Bhutta
  * Maintainer:
@@ -30,6 +29,11 @@
  */
 
 /* Code: */
+#define GAME_WINDOW_HPP
+
+// Include necessary libraries
+#include <ncurses.h>
+
 
 #define WELL_WIDTH 50
 #define WELL_HEIGHT 25
