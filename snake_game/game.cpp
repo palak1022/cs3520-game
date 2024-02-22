@@ -42,6 +42,7 @@ int score = 0;
 int gameSpeed = 100;
 Direction snake_direction = RIGHT;
 bool quit = false;
+Snake* lastSegment;
 
 void generate_points(int *food_x, int *food_y, int width, int height, int x_offset, int y_offset){
     *food_x = rand() % width + x_offset;
@@ -61,6 +62,49 @@ void update_speed() {
     if (score % 100 == 0 && score != 0) {
         gameSpeed *= 1.5;
     }
+}
+
+Snake* find_last_segment(Snake* snake) {
+    if (snake->next == nullptr) {
+        return snake;
+    } else {
+        return find_last_segment(snake->next);
+    }
+}
+
+void add_tail_segment(Snake* snake, int new_tail_x, int new_tail_y) {
+    // Find the last segment of the snake
+    Snake* last_segment = snake;
+    while (last_segment->next != nullptr) {
+        last_segment = last_segment->next;
+    }
+
+    // Determine the position of the new tail segment based on the direction of the snake
+    int tail_x = last_segment->x;
+    int tail_y = last_segment->y;
+    switch (snake_direction) {
+        case UP:
+            tail_y += 1; // Move the tail segment one cell down
+            break;
+        case DOWN:
+            tail_y -= 1; // Move the tail segment one cell up
+            break;
+        case LEFT:
+            tail_x += 1; // Move the tail segment one cell to the right
+            break;
+        case RIGHT:
+            tail_x -= 1; // Move the tail segment one cell to the left
+            break;
+    }
+
+    // Create a new tail segment at the updated position
+    Snake* new_segment = create_tail(tail_x, tail_y);
+
+    // Link the new tail segment to the last segment
+    last_segment->next = new_segment;
+
+    // Ensure that the new tail segment becomes the last segment
+    new_segment->next = nullptr;
 }
 
 void show_welcome_screen() {
@@ -170,16 +214,24 @@ void game(){
                     exit(0);
                     break;
                 case 'w':
-                    snake_direction = UP;
+                    if (snake_direction != DOWN) {
+                        snake_direction = UP;
+                    }
                     break;
                 case 's':
-                    snake_direction = DOWN;
+                    if (snake_direction != UP) {
+                        snake_direction = DOWN;
+                    }
                     break;
                 case 'a':
-                    snake_direction = LEFT;
+                    if (snake_direction != RIGHT) {
+                        snake_direction = LEFT;
+                    }
                     break;
                 case 'd':
-                    snake_direction = RIGHT;
+                    if (snake_direction != LEFT) {
+                        snake_direction = RIGHT;
+                    }
                     break;
             }
 
@@ -192,12 +244,7 @@ void game(){
                     case Increase:
                         update_score(20);
                         update_speed();
-                        Snake *tail = snake;
-                        while (tail->next != nullptr) {
-                            tail = tail->next;
-                        }
-                        tail->next = create_tail(snake->x, snake->y);
-                        tail = tail->next;
+                        add_tail_segment(snake, snake->x, snake->y);
                         break;
                     case Decrease:
                         update_score(-10);
