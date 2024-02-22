@@ -34,7 +34,7 @@
 #include <cstdlib>
 #include <ncurses.h>
 #include "game_window.hpp"
-using  namespace std;
+
 gamewindow_t *init_GameWindow(int upper_left_x, int upper_left_y, int width, int height)
 {
 	gamewindow_t *g;
@@ -53,9 +53,7 @@ gamewindow_t *init_GameWindow(int upper_left_x, int upper_left_y, int width, int
 void draw_Gamewindow(gamewindow_t *r)
 {
 	int row_counter, column_counter;
-	start_color();
-	init_pair(7, COLOR_RED, COLOR_BLACK);
-	attron(COLOR_PAIR(5));
+
 	// Draw Top of room
 	for (row_counter = r->upper_left_x;
 		 row_counter <= (r->upper_left_x + r->width);

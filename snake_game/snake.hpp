@@ -29,7 +29,6 @@
 
 
 #include <cstdbool>
-#include "key.hpp"
 
 struct Snake {
   int x;
@@ -38,8 +37,6 @@ struct Snake {
   char color[3];
   char symbol;
   struct Snake* next;
-  enum KEY direction;
-
 };
 
 typedef struct Snake Snake;
@@ -51,7 +48,3 @@ void draw_snake(Snake* snake);
 bool eat_itself(Snake* snake);
 Snake* remove_tail(Snake* snake);
 int len(Snake* snake);
-Snake *grow_tail(Snake *snake, KEY key);
-bool eat_itself(Snake *snake, int x, int y) ;
-
-
