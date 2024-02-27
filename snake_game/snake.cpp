@@ -32,8 +32,11 @@
 #include <cstdlib>
 #include "snake.hpp"
 #include "key.hpp"
+#include "game.hpp"
 #include "food.hpp"
 #include <ncurses.h>
+
+int speed = get_speed();
 
 // Initialize snake
 Snake *init_snake(int x, int y)
@@ -66,6 +69,8 @@ Snake *move_snake(Snake *snake, int direction)
 {
   // TODO
   Snake *new_head = new Snake;
+  new_head->x = snake->x;
+  new_head->y = snake->y;
 
   // Set the new head to have the x and y coordinates as the existing head of the snake
 
@@ -91,30 +96,14 @@ Snake *move_snake(Snake *snake, int direction)
     new_head->y = snake->y;
     new_head->x = snake->x--;
     break;
+  case NOCHAR:
+    break;
   }
 
   // Set new head as the new head of the entire snake
   // Add all the features (color and symbol) to the new cell
   //  Delete the tail from the snake: HINT - there is a remove tail function below
   new_head->next = snake;
-
-  Snake *current_segment = snake;
-    while (current_segment != nullptr)
-    {
-        // Save the current segment's position
-        int temp_x = current_segment->x;
-        int temp_y = current_segment->y;
-
-        // Update the segment's position with the previous segment's position
-        current_segment->x = head_x;
-        current_segment->y = head_y;
-
-        // Move to the next segment
-        head_x = temp_x;
-        head_y = temp_y;
-        current_segment = current_segment->next;
-    }
-
 
   new_head->color[0] = snake->color[0];
   new_head->color[1] = snake->color[1];
@@ -146,7 +135,21 @@ void draw_snake(Snake *snake)
 }
 
 // checks if it eats itself, if it does, then return true
-bool eat_itself(Snake *snake)
-{
-  // TODO for Milestone 2 only
+bool eat_itself(Snake *snake) {
+  int head_x = snake->x;
+  int head_y = snake->y;
+
+  // Traverse the snake's segments starting from the second segment
+  Snake *current_segment = snake->next;
+  while (current_segment != nullptr) {
+      // Check if the current segment's position matches the head's position
+      if (current_segment->x == head_x && current_segment->y == head_y) {
+          return true; // Snake has collided with itself
+      }
+      // Move to the next segment
+      current_segment = current_segment->next;
+  }
+
+  return false; // Snake has not collided with itself
 }
+

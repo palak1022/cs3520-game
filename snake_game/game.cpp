@@ -28,8 +28,13 @@
 */
 #include <curses.h>
 #include <cstdio>
+#include <utility>
 #include <cstdlib>
 #include <ctime>
+#include <vector>
+#include <algorithm>
+#include <fstream>
+#include <string>
 #include "snake.hpp"
 #include "food.hpp"
 #include "game_window.hpp"
@@ -39,14 +44,216 @@ using namespace std;
 
 // Initialize global Variables
 int score = 0;
-int gameSpeed = 100;
+int gameSpeed = 10;
 Direction snake_direction = RIGHT;
 bool quit = false;
 Snake* lastSegment;
+int lives = 3;
+
+// Obstacle Struct
+struct Obstacle {
+    int x;
+    int y;
+    int size;
+
+    Obstacle(int x_, int y_, int size_) : x(x_), y(y_), size(size_) {}
+};
+
+enum DifficultyLevel {
+    EASY,
+    HARD,
+    ADVANCED
+};
+
+struct GameParameters {
+    int snakeSpeed;
+    int numFoodItems;
+    int numObstacles;
+    int numLives;
+};
+
+
+
+GameParameters setEasyParameters() {
+    return { 1, 5, 3, 3 }; // Example values, adjust as needed
+}
+
+// Function to set game parameters for hard difficulty
+GameParameters setHardParameters() {
+    return { 2, 10, 5, 3 }; // Example values, adjust as needed
+}
+
+// Function to set game parameters for advanced difficulty
+GameParameters setAdvancedParameters() {
+    return { 3, 15, 7, 3 }; // Example values, adjust as needed
+}
+
+vector<Obstacle> generate_obstacles(int width, int height, int snake_x, int snake_y, DifficultyLevel difficulty) {
+    vector<Obstacle> obstacles;
+    srand(time(nullptr)); // Seed the random number generator
+
+    int numObstacles = 0;
+
+    switch (difficulty) {
+        case EASY:
+            numObstacles = 3; // Example value, adjust as needed
+            break;
+        case HARD:
+            numObstacles = 5; // Example value, adjust as needed
+            break;
+        case ADVANCED:
+            numObstacles = 7; // Example value, adjust as needed
+            break;
+    }
+
+    for (int i = 0; i < numObstacles; ++i) {
+        int obstacle_x = rand() % (width - 2) + 1; // Generate random x coordinate within the game window (excluding borders)
+        int obstacle_y = rand() % (height - 2) + 1; // Generate random y coordinate within the game window (excluding borders)
+        
+        // Ensure obstacle doesn't start on the snake's position
+        while ((obstacle_x == snake_x && obstacle_y == snake_y) || 
+               (obstacle_x == snake_x + 1 && obstacle_y == snake_y) || 
+               (obstacle_x == snake_x && obstacle_y == snake_y + 1) || 
+               (obstacle_x == snake_x + 1 && obstacle_y == snake_y + 1)) {
+            obstacle_x = rand() % (width - 2) + 1;
+            obstacle_y = rand() % (height - 2) + 1;
+        }
+
+        int size = rand() % 4 + 2; // Random size between 2 and 5
+
+        // Ensure obstacle doesn't extend beyond game window boundaries
+        if (obstacle_x + size > width - 1) {
+            obstacle_x = width - size - 1;
+        }
+        if (obstacle_y + size > height - 1) {
+            obstacle_y = height - size - 1;
+        }
+
+        obstacles.push_back({obstacle_x, obstacle_y, size});
+    }
+
+    return obstacles;
+}
+
+void decrement_lives() {
+    lives--;
+}
+
+void print_obstacles(const vector<Obstacle>& obstacles) {
+    for (const auto& obstacle : obstacles) {
+        for (int i = 0; i < obstacle.size; ++i) {
+            for (int j = 0; j < obstacle.size; ++j) {
+                mvprintw(obstacle.y + i, obstacle.x + j * 2, "* "); // Multiply j by 2 to create a grid
+            }
+        }
+    }
+}
 
 void generate_points(int *food_x, int *food_y, int width, int height, int x_offset, int y_offset){
-    *food_x = rand() % width + x_offset;
-    *food_y = rand() % height + y_offset;
+    *food_x = rand() % (width-2) + x_offset + 1;
+    *food_y = rand() % (height-2) + y_offset + 1;
+}
+
+
+bool check_boundary_collision(int x, int y, int width, int height) {
+    return x <= 0 || x >= width - 1 || y <= 0 || y >= height - 1;
+}
+
+bool check_obstacle_collision(int x, int y, const vector<Obstacle>& obstacles) {
+    // Check if the coordinates (x, y) overlap with any obstacle in the vector
+    for (const auto& obstacle : obstacles) {
+        if (x >= obstacle.x && x < obstacle.x + obstacle.size &&
+            y >= obstacle.y && y < obstacle.y + obstacle.size) {
+            return true; // Collision detected
+        }
+    }
+    return false; // No collision
+}
+
+bool snake_length_less_than_one(Snake* snake) {
+    // Check if snake's length is less than 1 (only the head is left)
+    return snake->next == nullptr;
+}
+
+bool check_game_over(Snake* snake, int width, int height, const vector<Obstacle>& obstacles) {
+    // Check if snake hits any of the 4 edges / walls
+    if (check_boundary_collision(snake->x, snake->y, width, height)) {
+        return true;
+    }
+
+    // Check if snake collides with itself
+    if (eat_itself(snake)) {
+        return true;
+    }
+
+    // Check if snake's length is less than 1
+    if (snake_length_less_than_one(snake)) {
+        return true;
+    }
+
+    // Check if snake touches any obstacle
+    if (check_obstacle_collision(snake->x,snake->y, obstacles)) {
+        return true;
+    }
+
+    return false;
+}
+
+struct HighScoreEntry {
+    std::string playerName;
+    int score;
+
+    HighScoreEntry(const std::string& name, int s) : playerName(name), score(s) {}
+};
+
+// Compare function to sort high score entries by score in descending order
+bool compareByScore(const HighScoreEntry& a, const HighScoreEntry& b) {
+    return a.score > b.score;
+}
+
+// Function to save the best 10 scores to a file
+void saveBestScores(const std::vector<HighScoreEntry>& bestScores) {
+    std::ofstream outputFile("saves/save_best_10.game");
+    if (!outputFile.is_open()) {
+        std::cerr << "Error: Unable to open file for writing." << std::endl;
+        return;
+    }
+
+    for (const auto& entry : bestScores) {
+        outputFile << entry.playerName << " " << entry.score << std::endl;
+    }
+
+    outputFile.close();
+}
+
+// Function to update the list of best scores with a new score
+void updateBestScores(std::vector<HighScoreEntry>& bestScores, const std::string& playerName, int newScore) {
+    bestScores.emplace_back(playerName, newScore);
+    std::sort(bestScores.begin(), bestScores.end(), compareByScore); // Sort the best scores
+    if (bestScores.size() > 10) {
+        bestScores.pop_back(); // Keep only the top 10 scores
+    }
+}
+
+
+void show_game_over_screen(int score) {
+    // Clear the screen
+    clear();
+
+    // Print the game over message and score
+    mvprintw(10, 10, "Game Over!");
+    mvprintw(12, 10, "Score: %d", score);
+    mvprintw(14, 10, "Press any key to exit...");
+
+    // Refresh the screen
+    refresh();
+
+    // Wait for user input before exiting
+    getch();
+}
+
+int get_speed() {
+    return gameSpeed;   
 }
 
 void update_score(int points) {
@@ -82,6 +289,7 @@ void add_tail_segment(Snake* snake, int new_tail_x, int new_tail_y) {
     // Determine the position of the new tail segment based on the direction of the snake
     int tail_x = last_segment->x;
     int tail_y = last_segment->y;
+
     switch (snake_direction) {
         case UP:
             tail_y += 1; // Move the tail segment one cell down
@@ -107,19 +315,63 @@ void add_tail_segment(Snake* snake, int new_tail_x, int new_tail_y) {
     new_segment->next = nullptr;
 }
 
+void save_points_to_file(int score) {
+    std::ofstream outputFile("snake_scores.txt", std::ios::app); // Open the file in append mode
+    if (outputFile.is_open()) {
+        outputFile << "Final Score: " << score << std::endl;
+        outputFile.close();
+    }
+}
+
 void show_welcome_screen() {
     clear();
     mvprintw(10, 10, "Welcome to Snake Game!");
-    mvprintw(12, 10, "Instructions:");
-    mvprintw(14, 10, "Use arrow keys to control the snake.");
-    mvprintw(16, 10, "Eat the food to grow the snake and increase your score.");
-    mvprintw(18, 10, "Press 'q' to quit the game at any time.");
-    mvprintw(20, 10, "Press 'p' to pause and resume the game.");
-    mvprintw(22, 10, "Press 's' to start the game...");
+    mvprintw(12, 10, "Choose Difficulty Level:");
+    mvprintw(14, 10, "1. Easy");
+    mvprintw(16, 10, "2. Hard");
+    mvprintw(18, 10, "3. Advanced");
     refresh();
     
-    char ch;
-    while ((ch = getch()) != 's' && ch != 'S');
+    int choice;
+    while (true) {
+        choice = getch() - '0';
+        if (choice >= 1 && choice <= 3) {
+            break;
+        }
+    }
+
+    DifficultyLevel difficulty;
+    switch (choice) {
+        case 1:
+            difficulty = EASY;
+            break;
+        case 2:
+            difficulty = HARD;
+            break;
+        case 3:
+            difficulty = ADVANCED;
+            break;
+    }
+
+    // Adjust game parameters based on difficulty level
+    GameParameters params;
+    switch (difficulty) {
+        case EASY:
+            params = setEasyParameters();
+            break;
+        case HARD:
+            params = setHardParameters();
+            break;
+        case ADVANCED:
+            params = setAdvancedParameters();
+            break;
+    }
+
+    // Use params to set game parameters
+    int snakeSpeed = params.snakeSpeed;
+    int numFoodItems = params.numFoodItems;
+    int numObstacles = params.numObstacles;
+    int numLives = params.numLives;
 }
 
 void game(){
@@ -129,6 +381,12 @@ void game(){
     gamewindow_t *window; // Name of the board
     Snake *snake; // The snake
     Food *foods,*new_food; // List of foods (Not an array)
+    vector<HighScoreEntry> bestScores;
+    std::string playerName;
+    int newScore = 1000;
+    std::cout << "Enter your name: ";
+    std::cin >> playerName;
+
 
     const int height = 30; 
     const int width = 70;
@@ -137,6 +395,11 @@ void game(){
     struct timespec timeret;
     timeret.tv_sec = 0;
     timeret.tv_nsec = 999999999/4;
+
+    vector<Obstacle> obstacles;
+
+    // Generate obstacles
+    obstacles = generate_obstacles(width, height, x_offset, y_offset, EASY);
 
     while(state != EXIT){
         switch(state){
@@ -244,12 +507,10 @@ void game(){
                     case Increase:
                         update_score(20);
                         update_speed();
-                        add_tail_segment(snake, snake->x, snake->y);
                         break;
                     case Decrease:
                         update_score(-10);
                         update_speed();
-                        snake = remove_tail(snake);
                         break;
                     default:
                         break;
@@ -262,16 +523,31 @@ void game(){
                 add_new_food(foods, new_food);
             }
 
+            // Check for game over scenarios
+            if (check_game_over(snake, width, height, obstacles)) {
+                if (lives > 0) {
+                    lives--;
+                    state = INIT;
+                } else {
+                    state = DEAD;
+                    break;
+                } 
+            }
+
 			// Draw everything on the screen
             clear();
             print_score();
+            mvprintw(7, 10, "Lives: %d", lives);
             draw_Gamewindow(window);
             draw_snake(snake);
             draw_food(foods);
+            print_obstacles(obstacles);
             break;
 
         case DEAD:
-            endwin();
+            save_points_to_file(score);
+
+            show_game_over_screen(score);
             break;
         }
         refresh();
