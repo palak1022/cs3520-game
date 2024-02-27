@@ -49,4 +49,4 @@ bool food_exists(Food* foods, int x, int y);
 Food* create_food(int x, int y, enum Type type);
 enum Type food_type(Food* foods, int x, int y);
 Food* remove_eaten_food(Food* foods, int x, int y);
-void draw_food(Food *food);
+void draw_food(Food *food, int colorPair);

@@ -30,3 +30,5 @@ void game();
 void generate_points(int *food_x, int *food_y, int width, int height, int x_offset, int y_offset);
 enum State{INIT, ALIVE, DEAD, EXIT};
 int get_speed();
+enum ColorPairs {COLOR_PAIR_SNAKE = 1, COLOR_PAIR_FOOD, COLOR_PAIR_OBSTACLE};
+void initColors();

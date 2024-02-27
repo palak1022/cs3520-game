@@ -112,10 +112,13 @@ Food* remove_eaten_food(Food* foods, int x, int y){
 }
 
 // Display all the food
-void draw_food (Food *foods)
-{   Food* temp = foods;
-    while(temp) {
+void draw_food(Food *foods, int colorPair) {
+    Food* temp = foods;
+    attron(COLOR_PAIR(colorPair)); // Apply the specified color pair
+    while (temp) {
         mvprintw(temp->y, temp->x, "%c", temp->type);
         temp = temp->next;
     }
+    attroff(COLOR_PAIR(colorPair)); // Remove the color attribute
+    refresh();
 }

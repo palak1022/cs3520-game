@@ -140,6 +140,7 @@ void decrement_lives() {
 }
 
 void print_obstacles(const vector<Obstacle>& obstacles) {
+    attron(COLOR_PAIR(COLOR_PAIR_OBSTACLE)); // Apply obstacle color
     for (const auto& obstacle : obstacles) {
         for (int i = 0; i < obstacle.size; ++i) {
             for (int j = 0; j < obstacle.size; ++j) {
@@ -147,6 +148,15 @@ void print_obstacles(const vector<Obstacle>& obstacles) {
             }
         }
     }
+    attroff(COLOR_PAIR(COLOR_PAIR_OBSTACLE)); // Remove obstacle color attribute
+}
+
+// Function to initialize colors
+void initColors() {
+    start_color();
+    init_pair(COLOR_PAIR_SNAKE, COLOR_GREEN, COLOR_BLACK); // Snake color: green
+    init_pair(COLOR_PAIR_FOOD, COLOR_BLUE, COLOR_BLACK); // Food color: red
+    init_pair(COLOR_PAIR_OBSTACLE, COLOR_YELLOW, COLOR_BLACK); // Obstacle color: yellow
 }
 
 void generate_points(int *food_x, int *food_y, int width, int height, int x_offset, int y_offset){
@@ -197,42 +207,6 @@ bool check_game_over(Snake* snake, int width, int height, const vector<Obstacle>
     }
 
     return false;
-}
-
-struct HighScoreEntry {
-    std::string playerName;
-    int score;
-
-    HighScoreEntry(const std::string& name, int s) : playerName(name), score(s) {}
-};
-
-// Compare function to sort high score entries by score in descending order
-bool compareByScore(const HighScoreEntry& a, const HighScoreEntry& b) {
-    return a.score > b.score;
-}
-
-// Function to save the best 10 scores to a file
-void saveBestScores(const std::vector<HighScoreEntry>& bestScores) {
-    std::ofstream outputFile("saves/save_best_10.game");
-    if (!outputFile.is_open()) {
-        std::cerr << "Error: Unable to open file for writing." << std::endl;
-        return;
-    }
-
-    for (const auto& entry : bestScores) {
-        outputFile << entry.playerName << " " << entry.score << std::endl;
-    }
-
-    outputFile.close();
-}
-
-// Function to update the list of best scores with a new score
-void updateBestScores(std::vector<HighScoreEntry>& bestScores, const std::string& playerName, int newScore) {
-    bestScores.emplace_back(playerName, newScore);
-    std::sort(bestScores.begin(), bestScores.end(), compareByScore); // Sort the best scores
-    if (bestScores.size() > 10) {
-        bestScores.pop_back(); // Keep only the top 10 scores
-    }
 }
 
 
@@ -381,11 +355,9 @@ void game(){
     gamewindow_t *window; // Name of the board
     Snake *snake; // The snake
     Food *foods,*new_food; // List of foods (Not an array)
-    vector<HighScoreEntry> bestScores;
     std::string playerName;
     int newScore = 1000;
-    std::cout << "Enter your name: ";
-    std::cin >> playerName;
+
 
 
     const int height = 30; 
@@ -400,7 +372,7 @@ void game(){
 
     // Generate obstacles
     obstacles = generate_obstacles(width, height, x_offset, y_offset, EASY);
-
+    
     while(state != EXIT){
         switch(state){
         case INIT:
@@ -429,6 +401,9 @@ void game(){
             // Init snake
             snake = init_snake(x_offset + (width / 2), y_offset + (height / 2));
             
+            // INit Colors
+            initColors();
+
             // Init foods
             int food_x, food_y, i;
             enum Type type;
@@ -540,13 +515,12 @@ void game(){
             mvprintw(7, 10, "Lives: %d", lives);
             draw_Gamewindow(window);
             draw_snake(snake);
-            draw_food(foods);
+            draw_food(foods, COLOR_PAIR_FOOD);
             print_obstacles(obstacles);
             break;
 
         case DEAD:
             save_points_to_file(score);
-
             show_game_over_screen(score);
             break;
         }

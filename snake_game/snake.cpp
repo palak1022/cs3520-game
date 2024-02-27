@@ -124,14 +124,15 @@ Snake *remove_tail(Snake *snake)
 }
 
 // draws the snake on the board
-void draw_snake(Snake *snake)
-{
-  while (snake)
-  {
-    mvprintw(snake->y, snake->x, "%c", snake->symbol);
-    snake = snake->next;
-  }
-  refresh();
+void draw_snake(Snake* snake) {
+    Snake* current_segment = snake;
+    while (current_segment != nullptr) {
+        attron(COLOR_PAIR(COLOR_PAIR_SNAKE)); // Apply snake color
+        mvprintw(current_segment->y, current_segment->x, "%c", current_segment->symbol); // Print snake segment
+        attroff(COLOR_PAIR(COLOR_PAIR_SNAKE)); // Remove snake color attribute
+        current_segment = current_segment->next;
+    }
+    refresh();
 }
 
 // checks if it eats itself, if it does, then return true
