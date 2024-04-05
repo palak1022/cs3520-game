@@ -9,7 +9,7 @@ LIBS=-lncurses
 _DEPS = 
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
-_OBJ = snake_game.o food.o game.o game_window.o snake.o key.o
+_OBJ = Ant.o DoodleBug.o main.o Male.o Organism.o Queen.o Worker.o World.o
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
 $(ODIR)/%.o: %.cpp $(DEPS)
